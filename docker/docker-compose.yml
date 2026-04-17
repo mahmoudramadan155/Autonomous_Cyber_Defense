@@ -1,0 +1,140 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────
+  # POSTGRESQL
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: cyber_defense_postgres
+    environment:
+      POSTGRES_USER: soc
+      POSTGRES_PASSWORD: soc_secure_pass
+      POSTGRES_DB: soc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      
+  # ─────────────────────────────────────────
+  # REDIS (Streaming Engine + Cache)
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cyber_defense_redis
+    ports:
+      - "6379:6379"
+
+  # ─────────────────────────────────────────
+  # API GATEWAY / INGESTION
+  # ─────────────────────────────────────────
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cyber_defense_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://soc:soc_secure_pass@postgres:5432/soc_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../:/app
+    depends_on:
+      - redis
+      - postgres
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ─────────────────────────────────────────
+  # WORKER: DETECTION (Rules + AI)
+  # ─────────────────────────────────────────
+  worker_detection:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cyber_defense_detection
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://soc:soc_secure_pass@postgres:5432/soc_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../:/app
+    depends_on:
+      - redis
+      - postgres
+    command: python -m app.worker_main detection
+
+  # ─────────────────────────────────────────
+  # WORKER: CORRELATION
+  # ─────────────────────────────────────────
+  worker_correlation:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cyber_defense_correlation
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://soc:soc_secure_pass@postgres:5432/soc_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../:/app
+    depends_on:
+      - redis
+      - postgres
+    command: python -m app.worker_main correlation
+
+  # ─────────────────────────────────────────
+  # WORKER: RISK & RESPONSE
+  # ─────────────────────────────────────────
+  worker_response:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cyber_defense_response
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://soc:soc_secure_pass@postgres:5432/soc_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ../:/app
+    depends_on:
+      - redis
+      - postgres
+    command: python -m app.worker_main response
+
+  # ─────────────────────────────────────────
+  # FRONTEND DASHBOARD
+  # ─────────────────────────────────────────
+  frontend:
+    image: nginx:alpine
+    container_name: cyber_defense_frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ../dashboard:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+
+  # ─────────────────────────────────────────
+  # THIRD-PARTY INGESTION (VECTOR)
+  # ─────────────────────────────────────────
+  vector:
+    image: timberio/vector:0.33.0-alpine
+    container_name: cyber_defense_vector
+    ports:
+      - "8686:8686"
+      - "5140:514"  # Syslog ingestion
+    volumes:
+      - ./vector.yaml:/etc/vector/vector.yaml:ro
+    depends_on:
+      - api
+      - redis
+
+volumes:
+  postgres_data:

@@ -1,0 +1,28 @@
+sources:
+  syslog_in:
+    type: "syslog"
+    address: "0.0.0.0:514"
+    mode: "tcp"
+
+transforms:
+  normalize_logs:
+    type: "remap"
+    inputs:
+      - "syslog_in"
+    source: |
+      .source = "Vector-Syslog"
+      .source_ip = .host
+      .message = .message
+      .tenant_id = "default"
+
+sinks:
+  fastapi_ingest:
+    type: "http"
+    inputs:
+      - "normalize_logs"
+    uri: "http://api:8000/api/v1/ingest/logs"
+    method: "post"
+    encoding:
+      codec: "json"
+    healthcheck:
+      enabled: false

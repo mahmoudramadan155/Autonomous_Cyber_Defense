@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Cyber Defense Platform</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Recharts Dependencies -->
+    <script src="https://unpkg.com/prop-types@15.6/prop-types.js"></script>
+    <script src="https://unpkg.com/react-is@18/umd/react-is.development.js"></script>
+    <!-- Recharts -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    
+    <!-- Tailwind CSS (for quick styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: '#0f172a',
+                        darker: '#0b1120',
+                        card: '#1e293b',
+                        primary: '#3b82f6',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        critical: '#991b1b'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darker text-slate-300 font-sans antialiased overflow-hidden">
+    <div id="error-container" style="color:red; font-family:monospace; padding:20px; z-index:9999; position:absolute;"></div>
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            document.getElementById('error-container').innerHTML += `<p>Error: ${msg} at ${lineNo}:${columnNo}</p>`;
+            return false;
+        };
+    </script>
+    <div id="root"></div>
+
+    <!-- Load App Bundle (v2 - full implementation) -->
+    <script type="text/babel" src="js/bundle.js?v=2"></script>
+</body>
+</html>
